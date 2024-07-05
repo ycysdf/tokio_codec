@@ -1,0 +1,15 @@
+[package]
+name = "tokio_codec_macros"
+version = "0.0.1"
+edition = "2021"
+publish = true
+license = "MIT"
+description = "tokio codec. auto impl tokio_util::codec::Encoder and tokio_util::codec::Decoder. "
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"
