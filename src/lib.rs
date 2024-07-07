@@ -1,25 +1,42 @@
+mod bytes;
 mod encoded_size;
 #[cfg(feature = "xid")]
 mod xid;
 
 pub use encoded_size::*;
+use std::any::Any;
 
 pub use paste::paste;
 use std::io::Error;
 use std::marker::PhantomData;
 pub use tokio_codec_macros::{Decode, Encode};
-use tokio_util::bytes::{Buf, BufMut, Bytes, BytesMut};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-#[derive(Default, Debug, Clone)]
-pub struct CommonEncoder {}
-
-#[derive(Debug, Clone)]
-pub struct CommonDecoderState {
-    pub byte_count: Option<usize>,
+#[derive(Default, Debug)]
+pub struct CommonEncoder {
+    pub data: Option<CommonEncodeState>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug)]
+pub struct CommonEncodeState {
+    pub data: Option<Box<dyn Any + Send>>,
+}
+
+impl CommonEncodeState {
+    // pub fn state<T: Any, U>(&mut self, f: impl FnOnce(Option<&mut T>) -> U) -> U {
+    //     let option = self.data.as_mut().and_then(|n| n.downcast_mut::<T>());
+    //     f(option)
+    // }
+}
+
+#[derive(Default, Debug)]
+pub struct CommonDecoderState {
+    pub byte_count: Option<usize>,
+    pub data: Option<Box<dyn Any + Send>>,
+}
+
+#[derive(Debug)]
 pub struct CommonDecoder<T> {
     pub state: Option<CommonDecoderState>,
     _marker: PhantomData<T>,
@@ -43,15 +60,57 @@ impl<T> Default for CommonDecoder<T> {
     }
 }
 
+pub trait Decode {
+    fn decode(
+        src: &mut BytesMut,
+        _state: &mut Option<CommonDecoderState>,
+    ) -> Result<Option<Self>, std::io::Error>
+    where
+        Self: Sized;
+}
+
+impl<T> Decoder for CommonDecoder<T>
+where
+    T: Decode,
+{
+    type Item = T;
+    type Error = std::io::Error;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        T::decode(src, &mut self.state)
+    }
+}
+
+pub trait Encode {
+    fn encode(
+        self,
+        dst: &mut BytesMut,
+        _state: &mut Option<CommonEncodeState>,
+    ) -> Result<(), std::io::Error>;
+}
+
+impl<T> Encoder<T> for CommonEncoder
+where
+    T: Encode,
+{
+    type Error = std::io::Error;
+
+    fn encode(&mut self, item: T, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        item.encode(dst, &mut self.data)
+    }
+}
+
 macro_rules! impl_primitive_encoder {
     ($($ty:ty)*) => {
       $(
-      impl Encoder<$ty> for CommonEncoder {
-         type Error = std::io::Error;
-
-         fn encode(&mut self, item: $ty, dst: &mut BytesMut) -> Result<(), Self::Error> {
+      impl Encode for $ty {
+         fn encode(
+            self,
+            dst: &mut BytesMut,
+            _state: &mut Option<CommonEncodeState>,
+         ) -> Result<(), std::io::Error> {
             paste::paste! {
-               dst.[<put_ $ty>](item);
+               dst.[<put_ $ty>](self);
             }
             Ok(())
          }
@@ -114,12 +173,14 @@ fn read_len_header_bytes(src: &mut BytesMut) -> Result<Option<BytesMut>, std::io
     Ok(Some(src.split_to(len as usize)))
 }
 
-impl Encoder<String> for CommonEncoder {
-    type Error = std::io::Error;
-
-    fn encode(&mut self, item: String, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        dst.put_u32(item.len() as u32);
-        dst.put_slice(item.as_bytes());
+impl Encode for String {
+    fn encode(
+        self,
+        dst: &mut BytesMut,
+        _state: &mut Option<CommonEncodeState>,
+    ) -> Result<(), Error> {
+        dst.put_u32(self.len() as u32);
+        dst.put_slice(self.as_bytes());
         Ok(())
     }
 }
@@ -137,67 +198,6 @@ impl Decode for String {
     }
 }
 
-impl Encoder<BytesMut> for CommonEncoder {
-    type Error = std::io::Error;
-
-    fn encode(&mut self, item: BytesMut, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        dst.put_u32(item.len() as u32);
-        dst.put_slice(item.chunk());
-        Ok(())
-    }
-}
-
-impl Decode for BytesMut {
-    fn decode(
-        src: &mut BytesMut,
-        _state: &mut Option<CommonDecoderState>,
-    ) -> Result<Option<Self>, Error>
-    where
-        Self: Sized,
-    {
-        read_len_header_bytes(src).map(|n| n)
-    }
-}
-
-impl Encoder<Bytes> for CommonEncoder {
-    type Error = std::io::Error;
-
-    fn encode(&mut self, item: Bytes, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        dst.put_u32(item.len() as u32);
-        dst.put_slice(item.chunk());
-        Ok(())
-    }
-}
-
-impl Decode for Bytes {
-    fn decode(
-        src: &mut BytesMut,
-        _state: &mut Option<CommonDecoderState>,
-    ) -> Result<Option<Self>, Error>
-    where
-        Self: Sized,
-    {
-        read_len_header_bytes(src).map(|n| n.map(|n| n.freeze()))
-    }
-}
-
-pub trait Decode {
-    fn decode(
-        src: &mut BytesMut,
-        state: &mut Option<CommonDecoderState>,
-    ) -> Result<Option<Self>, std::io::Error>
-    where
-        Self: Sized;
-}
-
-impl<T> Decoder for CommonDecoder<T>
-where
-    T: Decode,
-{
-    type Item = T;
-    type Error = std::io::Error;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        T::decode(src, &mut self.state)
-    }
+impl_encoded_size_for_with_len_header! {
+   String
 }

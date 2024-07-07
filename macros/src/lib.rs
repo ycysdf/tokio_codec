@@ -191,9 +191,9 @@ pub fn decode(item: TokenStream) -> TokenStream {
                   fn decode(src: &mut tokio_util::bytes::BytesMut, state: &mut Option<tokio_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
                      use tokio_util::bytes::Buf;
                      if state.is_none() {
-                        *state = Some(tokio_codec::CommonDecoderState {byte_count: None});
+                        *state = Some(tokio_codec::CommonDecoderState::default());
                      }
-                     let tokio_codec::CommonDecoderState{byte_count} = state.as_mut().unwrap() else {
+                     let tokio_codec::CommonDecoderState{byte_count,..} = state.as_mut().unwrap() else {
                         return Err(std::io::Error::other(format!("decode target error. should is enum.")))
                      };
                      let byte_count = if let Some(byte_count) = byte_count.clone() {
@@ -209,14 +209,17 @@ pub fn decode(item: TokenStream) -> TokenStream {
                      if src.len() < byte_count {
                         return Ok(None)
                      }
-                     *state = None;
                      let variant_index = src.get_u8();
-                     match variant_index {
+                     let r = match variant_index {
                         #(#decode_match_items),*
                         i => {
                            Err(std::io::Error::other(format!("variant index {i:?} is invalid. ")))
                         }
+                     };
+                     if matches!(r,Ok(Some(_))) {
+                        *state = None;
                      }
+                     r
                   }
                }
             }
@@ -275,9 +278,9 @@ pub fn decode(item: TokenStream) -> TokenStream {
                   fn decode(src: &mut BytesMut, state: &mut Option<tokio_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
                      use tokio_util::bytes::BufMut;
                      if state.is_none() {
-                        *state = Some(tokio_codec::CommonDecoderState {byte_count: None});
+                        *state = Some(tokio_codec::CommonDecoderState::default());
                      }
-                     let tokio_codec::CommonDecoderState{byte_count} = state.as_mut().unwrap() else {
+                     let tokio_codec::CommonDecoderState{byte_count,..} = state.as_mut().unwrap() else {
                         return Err(std::io::Error::other(format!("decode target error. should is struct.")))
                      };
                      let byte_count = if let Some(byte_count) = byte_count.clone() {
@@ -293,8 +296,9 @@ pub fn decode(item: TokenStream) -> TokenStream {
                      if src.len() < byte_count {
                         return Ok(None)
                      }
+                     let r = #construct;
                      *state = None;
-                     Ok(Some(#construct))
+                     Ok(Some(r))
                   }
                }
             }

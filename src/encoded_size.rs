@@ -1,13 +1,14 @@
-use tokio_util::bytes::Buf;
 pub struct InvalidData;
 pub trait EncodedSize {
    fn size(data: &[u8]) -> Result<Option<usize>, InvalidData>;
 }
+
 impl From<InvalidData> for std::io::Error {
    fn from(_value: InvalidData) -> Self {
       std::io::Error::other("invalid data.".to_string())
    }
 }
+
 macro_rules! impl_encoded_size_for_primitive {
     ($($ty:ty)*) => {
        $(
@@ -35,11 +36,12 @@ impl_encoded_size_for_primitive! {
    f64
 }
 
+#[macro_export]
 macro_rules! impl_encoded_size_for_with_len_header {
     ($($ty:ty)*) => {
        $(
-       impl EncodedSize for $ty {
-         fn size(mut data: &[u8]) -> Result<Option<usize>,InvalidData> {
+       impl $crate::EncodedSize for $ty {
+         fn size(mut data: &[u8]) -> Result<Option<usize>,$crate::InvalidData> {
             if data.len() < core::mem::size_of::<u32>() {
                return Ok(None);
             }
@@ -49,10 +51,4 @@ macro_rules! impl_encoded_size_for_with_len_header {
        }
        )*
     };
-}
-
-impl_encoded_size_for_with_len_header! {
-   String
-   tokio_util::bytes::Bytes
-   tokio_util::bytes::BytesMut
 }
