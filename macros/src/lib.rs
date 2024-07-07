@@ -22,7 +22,7 @@ pub fn encode(item: TokenStream) -> TokenStream {
                      } => {
                         dst.put_u8(#variant_index as u8);
                         #(
-                           <tokio_codec::CommonEncoder as tokio_util::codec::Encoder<#fields_ty>>::encode(self,#fields_ident,dst)?;
+                           <tokio_x_codec::CommonEncoder as tokio_util::codec::Encoder<#fields_ty>>::encode(self,#fields_ident,dst)?;
                         )*
                      }
                   }
@@ -34,7 +34,7 @@ pub fn encode(item: TokenStream) -> TokenStream {
                      #ident::#variant_ident(#(#fields_ident),*) => {
                         dst.put_u8(#variant_index as u8);
                         #(
-                           <tokio_codec::CommonEncoder as tokio_util::codec::Encoder<#fields_ty>>::encode(self,#fields_ident,dst)?;
+                           <tokio_x_codec::CommonEncoder as tokio_util::codec::Encoder<#fields_ty>>::encode(self,#fields_ident,dst)?;
                         )*
                      }
                   }
@@ -47,7 +47,7 @@ pub fn encode(item: TokenStream) -> TokenStream {
             }
          });
             quote! {
-               impl tokio_util::codec::Encoder<#ident> for tokio_codec::CommonEncoder {
+               impl tokio_util::codec::Encoder<#ident> for tokio_x_codec::CommonEncoder {
                   type Error = std::io::Error;
 
                   fn encode(&mut self, item: #ident, dst: &mut tokio_util::bytes::BytesMut) -> Result<(), Self::Error> {
@@ -79,13 +79,13 @@ pub fn encode(item: TokenStream) -> TokenStream {
             });
             let fields_ty = item.fields.iter().map(|n| &n.ty);
             quote! {
-               impl tokio_util::codec::Encoder<#ident> for tokio_codec::CommonEncoder {
+               impl tokio_util::codec::Encoder<#ident> for tokio_x_codec::CommonEncoder {
                   type Error = std::io::Error;
 
                   fn encode(&mut self, item: #ident, dst: &mut tokio_util::bytes::BytesMut) -> Result<(), Self::Error> {
                      use tokio_util::bytes::BufMut;
                      #(
-                        <tokio_codec::CommonEncoder as tokio_util::codec::Encoder<#fields_ty>>::encode(self,#fields_access,dst)?;
+                        <tokio_x_codec::CommonEncoder as tokio_util::codec::Encoder<#fields_ty>>::encode(self,#fields_access,dst)?;
                      )*
                      Ok(())
                   }
@@ -132,7 +132,7 @@ pub fn decode(item: TokenStream) -> TokenStream {
                   quote! {
                      #variant_index => {
                         #(
-                           let Some(#fields_ident) = <#fields_ty as tokio_codec::Decode>::decode(src,state)? else{
+                           let Some(#fields_ident) = <#fields_ty as tokio_x_codec::Decode>::decode(src,state)? else{
                               return Ok(None)
                            };
                         )*
@@ -150,7 +150,7 @@ pub fn decode(item: TokenStream) -> TokenStream {
                         Ok(Some(#ident::#variant_ident(
                            #(
                               {
-                                 let Some(r) = <#fields_ty as tokio_codec::Decode>::decode(src,state)? else {
+                                 let Some(r) = <#fields_ty as tokio_x_codec::Decode>::decode(src,state)? else {
                                     return Ok(None)
                                  };
                                  r
@@ -170,8 +170,8 @@ pub fn decode(item: TokenStream) -> TokenStream {
 
          });
             quote! {
-                impl tokio_codec::EncodedSize for #ident {
-                  fn size(mut data: &[u8]) -> Result<Option<usize>,tokio_codec::InvalidData> {
+                impl tokio_x_codec::EncodedSize for #ident {
+                  fn size(mut data: &[u8]) -> Result<Option<usize>,tokio_x_codec::InvalidData> {
                      use tokio_util::bytes::Buf;
                      use tokio_util::bytes::BufMut;
                      if data.is_empty() {
@@ -181,25 +181,25 @@ pub fn decode(item: TokenStream) -> TokenStream {
                      match variant_index {
                         #(#encoded_size_match_items),*
                         _ => {
-                           Err(tokio_codec::InvalidData)
+                           Err(tokio_x_codec::InvalidData)
                         }
                      }
                   }
                }
 
-               impl tokio_codec::Decode for #ident {
-                  fn decode(src: &mut tokio_util::bytes::BytesMut, state: &mut Option<tokio_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
+               impl tokio_x_codec::Decode for #ident {
+                  fn decode(src: &mut tokio_util::bytes::BytesMut, state: &mut Option<tokio_x_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
                      use tokio_util::bytes::Buf;
                      if state.is_none() {
-                        *state = Some(tokio_codec::CommonDecoderState::default());
+                        *state = Some(tokio_x_codec::CommonDecoderState::default());
                      }
-                     let tokio_codec::CommonDecoderState{byte_count,..} = state.as_mut().unwrap() else {
+                     let tokio_x_codec::CommonDecoderState{byte_count,..} = state.as_mut().unwrap() else {
                         return Err(std::io::Error::other(format!("decode target error. should is enum.")))
                      };
                      let byte_count = if let Some(byte_count) = byte_count.clone() {
                         byte_count
                      } else {
-                        if let Some(size) = <#ident as tokio_codec::EncodedSize>::size(src.chunk())? {
+                        if let Some(size) = <#ident as tokio_x_codec::EncodedSize>::size(src.chunk())? {
                            *byte_count = Some(size);
                            size
                         } else {
@@ -234,7 +234,7 @@ pub fn decode(item: TokenStream) -> TokenStream {
                quote! {
                   {
                      #(
-                        let Some(#fields_ident) = <#fields_ty as tokio_codec::Decode>::decode(src,state)? else{
+                        let Some(#fields_ident) = <#fields_ty as tokio_x_codec::Decode>::decode(src,state)? else{
                            return Ok(None)
                         };
                      )*
@@ -251,7 +251,7 @@ pub fn decode(item: TokenStream) -> TokenStream {
                   #ident(
                      #(
                         {
-                           let Some(r) = <#fields_ty as tokio_codec::Decode>::decode(src,state)? else {
+                           let Some(r) = <#fields_ty as tokio_x_codec::Decode>::decode(src,state)? else {
                               return Ok(None)
                            };
                            r
@@ -263,8 +263,8 @@ pub fn decode(item: TokenStream) -> TokenStream {
             Fields::Unit => {
                return quote! {
                   #encoded_size_impl
-                  impl tokio_codec::Decode for #ident {
-                     fn decode(_src: &mut BytesMut, _state: &mut Option<tokio_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
+                  impl tokio_x_codec::Decode for #ident {
+                     fn decode(_src: &mut BytesMut, _state: &mut Option<tokio_x_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
                            return Ok(Some(#ident))
                      }
                   }
@@ -274,19 +274,19 @@ pub fn decode(item: TokenStream) -> TokenStream {
          };
             quote! {
                #encoded_size_impl
-               impl tokio_codec::Decode for #ident {
-                  fn decode(src: &mut BytesMut, state: &mut Option<tokio_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
+               impl tokio_x_codec::Decode for #ident {
+                  fn decode(src: &mut BytesMut, state: &mut Option<tokio_x_codec::CommonDecoderState>) -> Result<Option<Self>, std::io::Error> {
                      use tokio_util::bytes::BufMut;
                      if state.is_none() {
-                        *state = Some(tokio_codec::CommonDecoderState::default());
+                        *state = Some(tokio_x_codec::CommonDecoderState::default());
                      }
-                     let tokio_codec::CommonDecoderState{byte_count,..} = state.as_mut().unwrap() else {
+                     let tokio_x_codec::CommonDecoderState{byte_count,..} = state.as_mut().unwrap() else {
                         return Err(std::io::Error::other(format!("decode target error. should is struct.")))
                      };
                      let byte_count = if let Some(byte_count) = byte_count.clone() {
                         byte_count
                      } else {
-                        if let Some(size) = <#ident as tokio_codec::EncodedSize>::size(src.chunk())? {
+                        if let Some(size) = <#ident as tokio_x_codec::EncodedSize>::size(src.chunk())? {
                            *byte_count = Some(size);
                            size
                         } else {
@@ -316,8 +316,8 @@ fn impl_encoded_size<'a, T: ToTokens>(
 ) -> proc_macro2::TokenStream {
     let stream = fields_encoded_size(fields_ty);
     quote! {
-        impl tokio_codec::EncodedSize for #ident {
-          fn size(mut data: &[u8]) -> Result<Option<usize>,tokio_codec::InvalidData> {
+        impl tokio_x_codec::EncodedSize for #ident {
+          fn size(mut data: &[u8]) -> Result<Option<usize>,tokio_x_codec::InvalidData> {
              let mut sum_size = 0;
              #stream
              Ok(Some(sum_size))
@@ -330,7 +330,7 @@ fn fields_encoded_size<'a, T: ToTokens>(
 ) -> proc_macro2::TokenStream {
     quote! {
        #(
-          let Some(size) = <#fields_ty as tokio_codec::EncodedSize>::size(data)? else {
+          let Some(size) = <#fields_ty as tokio_x_codec::EncodedSize>::size(data)? else {
             return Ok(None);
           };
           sum_size += size;

@@ -1,7 +1,7 @@
 use futures_util::{SinkExt, StreamExt};
 use std::io::Error;
 use std::net::{Ipv4Addr, SocketAddr};
-use tokio_codec::{
+use tokio_x_codec::{
     CommonDecoder, CommonDecoderState, CommonEncodeState, CommonEncoder, Decode, Encode,
     EncodedSize, InvalidData,
 };
@@ -31,12 +31,12 @@ impl Decode for Foo {
     }
 }
 impl EncodedSize for Foo {
-    fn size(data: &[u8]) -> Result<Option<usize>, InvalidData> {
+    fn size(_data: &[u8]) -> Result<Option<usize>, InvalidData> {
         Ok(Some(core::mem::size_of::<u32>()))
     }
 }
 
-// Encode: impl tokio_util::codec::Encoder<Msg> for tokio_codec::CommonEncoder
+// Encode: impl tokio_util::codec::Encoder<Msg> for tokio_x_codec::CommonEncoder
 // Decode: impl Decoder for CommonDecoder<Msg>
 #[derive(Encode, Decode)]
 enum Msg {

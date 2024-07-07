@@ -1,12 +1,12 @@
 [package]
-name = "tokio_codec"
-version = "0.0.1"
+name = "tokio_x_codec"
+version = "0.0.1-beta1"
 edition = "2021"
 license = "MIT"
 description = "tokio codec. auto impl tokio_util::codec::Encoder and tokio_util::codec::Decoder. "
 
 [dependencies]
-tokio_codec_macros = { path = "macros", version = "0.0.1" }
+tokio_codec_macros = { path = "macros", version = "0.0.1-beta1" }
 tokio-util = { version = "0.7", default-features = false, features = ["codec"] }
 paste = "1"
 

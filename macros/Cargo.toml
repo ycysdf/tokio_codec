@@ -1,6 +1,6 @@
 [package]
 name = "tokio_codec_macros"
-version = "0.0.1"
+version = "0.0.1-beta1"
 edition = "2021"
 publish = true
 license = "MIT"

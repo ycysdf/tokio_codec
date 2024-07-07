@@ -1,9 +1,9 @@
-# tokio_codec
+# tokio_x_codec
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ycysdf/tokio_codec#LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ycysdf/tokio_x_codec#LICENSE)
 
-[//]: # ([![Crates.io]&#40;https://img.shields.io/crates/v/tokio_codec.svg&#41;]&#40;https://crates.io/crates/tokio_codec&#41;)
-[//]: # ([![Docs]&#40;https://docs.rs/tokio_codec/badge.svg&#41;]&#40;https://docs.rs/tokio_codec&#41;)
+[//]: # ([![Crates.io]&#40;https://img.shields.io/crates/v/tokio_x_codec.svg&#41;]&#40;https://crates.io/crates/tokio_x_codec&#41;)
+[//]: # ([![Docs]&#40;https://docs.rs/tokio_x_codec/badge.svg&#41;]&#40;https://docs.rs/tokio_x_codec&#41;)
 
 ## Example
 
@@ -11,7 +11,7 @@
 use futures_util::{SinkExt, StreamExt};
 use std::io::Error;
 use std::net::{Ipv4Addr, SocketAddr};
-use tokio_codec::{
+use tokio_x_codec::{
    CommonDecoder, CommonDecoderState, CommonEncodeState, CommonEncoder, Decode, Encode,
    EncodedSize, InvalidData,
 };
@@ -46,7 +46,7 @@ impl EncodedSize for Foo {
    }
 }
 
-// Encode: impl tokio_util::codec::Encoder<Msg> for tokio_codec::CommonEncoder
+// Encode: impl tokio_util::codec::Encoder<Msg> for tokio_x_codec::CommonEncoder
 // Decode: impl Decoder for CommonDecoder<Msg>
 #[derive(Encode, Decode)]
 enum Msg {

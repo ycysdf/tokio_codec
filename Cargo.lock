@@ -415,8 +415,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio_codec"
-version = "0.0.1"
+name = "tokio_codec_macros"
+version = "0.0.1-beta1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "tokio_x_codec"
+version = "0.0.1-beta1"
 dependencies = [
  "futures-util",
  "paste",
@@ -424,15 +433,6 @@ dependencies = [
  "tokio-util",
  "tokio_codec_macros",
  "xid",
-]
-
-[[package]]
-name = "tokio_codec_macros"
-version = "0.0.1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
